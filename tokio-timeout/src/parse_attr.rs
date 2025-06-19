@@ -24,10 +24,10 @@ enum Attributes {
     OnError,
 }
 
-fn take_next(cur: &mut Opts, it: &mut impl Iterator<Item = TokenTree>) -> Result<bool, String>{
+fn take_next(cur: &mut Opts, it: &mut impl Iterator<Item = TokenTree>) -> Result<bool, String> {
     let id = loop {
         let Some(next) = it.next() else {
-        return Ok(false);
+            return Ok(false);
         };
         match next {
             TokenTree::Ident(id) => {
@@ -55,15 +55,16 @@ fn take_next(cur: &mut Opts, it: &mut impl Iterator<Item = TokenTree>) -> Result
             take_next_equals(it, "duration")?;
             parse_duration(it)?;
         }
-        Attributes::OnError => {
-            take_next_equals(it, "on_error")?
-        }
+        Attributes::OnError => take_next_equals(it, "on_error")?,
     }
-    
+
     Ok(true)
 }
 
-fn take_next_equals(it: &mut impl Iterator<Item = TokenTree>, attr: &'static str) -> Result<(), String> {
+fn take_next_equals(
+    it: &mut impl Iterator<Item = TokenTree>,
+    attr: &'static str,
+) -> Result<(), String> {
     let Some(next) = it.next() else {
         return Err(format!("Expected '=' after '{}', found nothing", attr));
     };
@@ -81,14 +82,10 @@ fn parse_duration(it: &mut impl Iterator<Item = TokenTree>) -> Result<ParsedDura
         return Err("Expected duration literal, got nothing".to_string());
     };
     match next {
-        TokenTree::Ident(id) => {
-            Ok(ParsedDuration::Ref(id))
-        }
-        TokenTree::Literal(lit) => {
-            Ok(ParsedDuration::Duration(crate::parse_duration::parse_duration(lit.to_string().as_str())?))
-        }
-        t => {
-            Err(format!("Expected duration literal or ident, got '{}'", t))
-        }
+        TokenTree::Ident(id) => Ok(ParsedDuration::Ref(id)),
+        TokenTree::Literal(lit) => Ok(ParsedDuration::Duration(
+            crate::parse_duration::parse_duration(lit.to_string().as_str())?,
+        )),
+        t => Err(format!("Expected duration literal or ident, got '{}'", t)),
     }
 }
