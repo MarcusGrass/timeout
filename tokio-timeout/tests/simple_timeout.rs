@@ -1,6 +1,25 @@
 use tokio_timeout::timeout;
 
-#[timeout(duration = "1m10s")]
-pub fn my_fn() {}
+#[timeout(duration = "1m10s", on_error = "panic")]
+pub async fn my_panic_fn() {}
 
-fn my_dur() {}
+pub enum MyErr {
+    Timeout(&'static str),
+}
+
+#[timeout(duration = "5ms", on_error = "MyErr::Timeout")]
+pub async fn my_res_fn() -> Result<String, MyErr> {
+    Ok("".to_string())
+}
+
+#[timeout(duration = "1ms", on_error = "MyErr::Timeout")]
+pub async fn my_will_time_out_fn() -> Result<String, MyErr> {
+    tokio::time::sleep(core::time::Duration::from_millis(1000)).await;
+    Ok("".to_string())
+}
+
+#[tokio::test]
+async fn smoke_times_out() {
+    let err = my_will_time_out_fn().await.err().unwrap();
+    assert!(matches!(err, MyErr::Timeout(_)));
+}

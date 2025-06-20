@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-pub(crate) fn parse_duration(dur: &str) -> Result<Duration, String> {
+pub fn parse_duration(dur: &str) -> Result<Duration, String> {
     let dur = dur.trim_matches('"');
     let mut it = dur.chars().enumerate();
     let mut prev_ind = None;

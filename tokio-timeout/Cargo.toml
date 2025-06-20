@@ -7,3 +7,7 @@ edition = "2024"
 proc-macro = true
 
 [dependencies]
+timeout-macro-parse = { workspace = true }
+
+[dev-dependencies]
+tokio = { version = "1.45.1", features = ["time", "macros", "rt"] }

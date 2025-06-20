@@ -1,22 +1,35 @@
 use proc_macro::{Ident, TokenStream, TokenTree};
 use std::time::Duration;
 
-pub fn parse_attr(attr: TokenStream) -> Result<(), String> {
+pub fn parse_attr(attr: TokenStream) -> Result<ValidOpts, String> {
     let mut opts = Opts::default();
     let mut it = attr.into_iter();
     while take_next(&mut opts, &mut it)? {}
-    Ok(())
+    Ok(ValidOpts {
+        duration: opts.duration.ok_or_else(|| "Missing 'duration' attribute".to_string())?,
+        on_error: opts.on_error.ok_or_else(|| "Missing 'on_error'".to_string())?,
+    })
+}
+
+pub struct ValidOpts {
+    pub duration: ParsedDuration,
+    pub on_error: OnError,
 }
 
 #[derive(Default)]
 struct Opts {
     duration: Option<ParsedDuration>,
-    on_error: Option<String>,
+    on_error: Option<OnError>,
 }
 
-enum ParsedDuration {
+pub enum ParsedDuration {
     Duration(Duration),
     Ref(Ident),
+}
+
+pub enum OnError {
+    Panic,
+    Result(String),
 }
 
 enum Attributes {
@@ -52,10 +65,19 @@ fn take_next(cur: &mut Opts, it: &mut impl Iterator<Item = TokenTree>) -> Result
     };
     match id {
         Attributes::Duration => {
+            if cur.duration.is_some() {
+                panic!("Duplicate 'duration' attribute");
+            }
             take_next_equals(it, "duration")?;
-            parse_duration(it)?;
+            cur.duration = Some(parse_duration(it)?);
         }
-        Attributes::OnError => take_next_equals(it, "on_error")?,
+        Attributes::OnError => {
+            if cur.on_error.is_some() {
+                panic!("Duplicate 'on_error' attribute");
+            }
+            take_next_equals(it, "on_error")?;
+            cur.on_error = Some(parse_on_error(it)?);
+        },
     }
 
     Ok(true)
@@ -79,7 +101,7 @@ fn take_next_equals(
 
 fn parse_duration(it: &mut impl Iterator<Item = TokenTree>) -> Result<ParsedDuration, String> {
     let Some(next) = it.next() else {
-        return Err("Expected duration literal, got nothing".to_string());
+        return Err("Expected duration token, got nothing".to_string());
     };
     match next {
         TokenTree::Ident(id) => Ok(ParsedDuration::Ref(id)),
@@ -87,5 +109,25 @@ fn parse_duration(it: &mut impl Iterator<Item = TokenTree>) -> Result<ParsedDura
             crate::parse_duration::parse_duration(lit.to_string().as_str())?,
         )),
         t => Err(format!("Expected duration literal or ident, got '{}'", t)),
+    }
+}
+
+fn parse_on_error(it: &mut impl Iterator<Item = TokenTree>) -> Result<OnError, String> {
+    let Some(next) = it.next() else {
+        return Err("Expected 'on_error' token, got nothing".to_string());
+    };
+    match next {
+        TokenTree::Literal(lit) => {
+            let lit = lit.to_string();
+            let lit = lit.trim_matches('"');
+            if lit == "panic" {
+                Ok(OnError::Panic)
+            } else {
+                Ok(OnError::Result(lit.to_string()))
+            }
+        },
+        t => {
+            Err(format!("Expected 'on_error' str literal, got '{}'", t))
+        },
     }
 }

@@ -1,4 +1,6 @@
 [workspace]
-members = ["tokio-timeout"]
+members = [ "timeout-macro-parse","tokio-timeout"]
 resolver = "3"
 
+[workspace.dependencies]
+timeout-macro-parse = { path = "./timeout-macro-parse" }
