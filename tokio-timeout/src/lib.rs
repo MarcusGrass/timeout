@@ -1,27 +1,39 @@
 #![allow(dead_code, unused)]
 
-use timeout_macro_parse::parse_attr::{parse_attr, OnError, ParsedDuration, ValidOpts};
-use proc_macro::{Delimiter, Group, TokenStream};
-use timeout_macro_parse::inject::{try_inject, Injector};
+use proc_macro::{Delimiter, Group, TokenStream, TokenTree};
+use timeout_macro_parse::inject::{Injector, try_inject};
+use timeout_macro_parse::parse_attr::{OnError, ParsedDuration, ValidOpts, parse_attr};
 
 struct TimeoutInjector(ValidOpts);
 
 impl Injector for TimeoutInjector {
-    fn inject(self, inner_code: String) -> String {
+    fn inject(self, inner_code: proc_macro2::TokenStream) -> Result<TokenStream, String> {
         let dur = match self.0.duration {
             ParsedDuration::Duration(d) => {
-                format!("core::time::Duration::new({}, {})", d.as_secs(), d.subsec_nanos())
+                let secs = d.as_secs();
+                let nanos = d.subsec_nanos();
+                quote::quote! {core::time::Duration::new(#secs, #nanos)}
             }
-            ParsedDuration::Ref(r) => {
-                r.to_string()
-            }
+            ParsedDuration::Ref(r) => TokenStream::from(TokenTree::Ident(r)).into(),
         };
         let on_timeout = match self.0.on_error {
-            OnError::Panic => "panic!(\"timeout\")".to_string(),
-            OnError::Result(e) => format!("Err({e}(\"timeout\"))"),
+            OnError::Panic => quote::quote! {panic!("timeout") },
+            OnError::Result(e) => {
+                let raw = e.to_string();
+                let raw = raw.trim_matches('"');
+                let raw = syn::parse_str::<syn::Expr>(&raw).map_err(|e| e.to_string())?;
+                quote::quote! { Err(#raw("timeout"))}
+            }
         };
-
-        format!("{{ match tokio::time::timeout( {dur}, async {{ {inner_code} }} ).await {{ Ok(v) => v, Err(e) => {on_timeout} }} }}")
+        Ok(quote::quote! {
+            {
+                match tokio::time::timeout( #dur, async { #inner_code } ).await {
+                    Ok(v) => v,
+                    Err(e) => #on_timeout
+                }
+            }
+        }
+        .into())
     }
 }
 

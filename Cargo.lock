@@ -118,6 +118,10 @@ dependencies = [
 [[package]]
 name = "timeout-macro-parse"
 version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+]
 
 [[package]]
 name = "tokio"
@@ -145,6 +149,9 @@ dependencies = [
 name = "tokio-timeout"
 version = "0.1.0"
 dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
  "timeout-macro-parse",
  "tokio",
 ]

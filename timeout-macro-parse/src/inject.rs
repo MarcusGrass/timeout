@@ -1,21 +1,26 @@
 use proc_macro::{Delimiter, TokenStream, TokenTree};
-use std::str::FromStr;
 
 pub trait Injector {
-    fn inject(self, inner_code: String) -> String;
+    fn inject(self, inner_code: proc_macro2::TokenStream) -> Result<TokenStream, String>;
 }
 
 pub fn try_inject(injector: impl Injector, source: TokenStream) -> Result<TokenStream, String> {
     let mut it = source.into_iter();
     let mut pre = TokenStream::new();
-    let inner_body = extract_inner_body(&mut pre, &mut it)?;
-    let res = injector.inject(inner_body.to_string());
-    let body = TokenStream::from_str(&res).map_err(|e| e.to_string())?;
-    pre.extend(body);
-    Ok(pre)
+    let inner_body = extract_inner_body(&mut pre, &mut it)?.into();
+    let res: proc_macro2::TokenStream = injector.inject(inner_body)?.into();
+    let pre = proc_macro2::TokenStream::from(pre);
+    Ok(quote::quote! {
+        #pre
+        #res
+    }
+    .into())
 }
 
-fn extract_inner_body(pre: &mut TokenStream, source: &mut impl Iterator<Item=TokenTree>) -> Result<TokenStream, String> {
+fn extract_inner_body(
+    pre: &mut TokenStream,
+    source: &mut impl Iterator<Item = TokenTree>,
+) -> Result<TokenStream, String> {
     let mut seen_async = false;
     let mut seen_fn_decl = false;
     let mut last = None;
@@ -47,6 +52,9 @@ fn extract_inner_body(pre: &mut TokenStream, source: &mut impl Iterator<Item=Tok
     let Some(TokenTree::Group(group)) = last else {
         return Err("'timeout' macro used on something without a body".to_string());
     };
-    assert!(matches!(group.delimiter(), Delimiter::Brace), "'timeout' macro used on something without a body (last group not a brace)");
+    assert!(
+        matches!(group.delimiter(), Delimiter::Brace),
+        "'timeout' macro used on something without a body (last group not a brace)"
+    );
     Ok(group.stream())
 }

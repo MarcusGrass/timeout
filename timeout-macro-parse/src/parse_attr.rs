@@ -1,4 +1,5 @@
 use proc_macro::{Ident, TokenStream, TokenTree};
+use quote::ToTokens;
 use std::time::Duration;
 
 pub fn parse_attr(attr: TokenStream) -> Result<ValidOpts, String> {
@@ -6,8 +7,12 @@ pub fn parse_attr(attr: TokenStream) -> Result<ValidOpts, String> {
     let mut it = attr.into_iter();
     while take_next(&mut opts, &mut it)? {}
     Ok(ValidOpts {
-        duration: opts.duration.ok_or_else(|| "Missing 'duration' attribute".to_string())?,
-        on_error: opts.on_error.ok_or_else(|| "Missing 'on_error'".to_string())?,
+        duration: opts
+            .duration
+            .ok_or_else(|| "Missing 'duration' attribute".to_string())?,
+        on_error: opts
+            .on_error
+            .ok_or_else(|| "Missing 'on_error'".to_string())?,
     })
 }
 
@@ -29,7 +34,7 @@ pub enum ParsedDuration {
 
 pub enum OnError {
     Panic,
-    Result(String),
+    Result(proc_macro2::TokenStream),
 }
 
 enum Attributes {
@@ -77,7 +82,7 @@ fn take_next(cur: &mut Opts, it: &mut impl Iterator<Item = TokenTree>) -> Result
             }
             take_next_equals(it, "on_error")?;
             cur.on_error = Some(parse_on_error(it)?);
-        },
+        }
     }
 
     Ok(true)
@@ -123,11 +128,9 @@ fn parse_on_error(it: &mut impl Iterator<Item = TokenTree>) -> Result<OnError, S
             if lit == "panic" {
                 Ok(OnError::Panic)
             } else {
-                Ok(OnError::Result(lit.to_string()))
+                Ok(OnError::Result(lit.to_token_stream()))
             }
-        },
-        t => {
-            Err(format!("Expected 'on_error' str literal, got '{}'", t))
-        },
+        }
+        t => Err(format!("Expected 'on_error' str literal, got '{}'", t)),
     }
 }
