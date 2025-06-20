@@ -21,7 +21,7 @@ impl Injector for TimeoutInjector {
             OnError::Result(e) => {
                 let raw = e.to_string();
                 let raw = raw.trim_matches('"');
-                let raw = syn::parse_str::<syn::Expr>(&raw).map_err(|e| e.to_string())?;
+                let raw = syn::parse_str::<syn::Expr>(raw).map_err(|e| e.to_string())?;
                 quote::quote! { Err(#raw("timeout"))}
             }
         };

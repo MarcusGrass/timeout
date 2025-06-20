@@ -66,6 +66,7 @@ fn parse_num(sect: &str) -> Result<u64, String> {
         .map_err(|e| format!("failed to parse num from '{sect}': {e}"))
 }
 
+#[allow(clippy::type_complexity)]
 fn create_duration(
     num: u64,
     lead_char: char,
@@ -81,6 +82,7 @@ fn create_duration(
     Ok((dur, rem, add))
 }
 
+#[allow(clippy::type_complexity)]
 fn parse_unit(
     start: char,
     iterator: &mut impl Iterator<Item = (usize, char)>,

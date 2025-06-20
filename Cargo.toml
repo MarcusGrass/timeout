@@ -8,3 +8,6 @@ quote = "1.0.40"
 syn = "2.0.103"
 
 timeout-macro-parse = { path = "./timeout-macro-parse" }
+
+[workspace.lints.clippy]
+pedantic = {priority = -1, level = "warn"}
