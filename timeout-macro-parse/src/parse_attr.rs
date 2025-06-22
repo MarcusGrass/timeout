@@ -1,5 +1,5 @@
-use proc_macro::{Ident, TokenStream, TokenTree};
-use quote::ToTokens;
+use proc_macro2::{TokenStream, TokenTree};
+use quote::{ToTokens, TokenStreamExt};
 use std::time::Duration;
 
 pub fn parse_attr(attr: TokenStream) -> Result<ValidOpts, String> {
@@ -29,12 +29,12 @@ struct Opts {
 
 pub enum ParsedDuration {
     Duration(Duration),
-    Ref(Ident),
+    Ref(TokenStream),
 }
 
 pub enum OnError {
     Panic,
-    Result(proc_macro2::TokenStream),
+    Result(TokenStream),
 }
 
 enum Attributes {
@@ -108,8 +108,12 @@ fn parse_duration(it: &mut impl Iterator<Item = TokenTree>) -> Result<ParsedDura
     let Some(next) = it.next() else {
         return Err("Expected duration token, got nothing".to_string());
     };
-    match next {
-        TokenTree::Ident(id) => Ok(ParsedDuration::Ref(id)),
+    match &next {
+        TokenTree::Ident(_id) => {
+            let mut stream = TokenStream::new();
+            stream.append(next);
+            Ok(ParsedDuration::Ref(stream))
+        },
         TokenTree::Literal(lit) => Ok(ParsedDuration::Duration(
             crate::parse_duration::parse_duration(lit.to_string().as_str())?,
         )),

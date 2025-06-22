@@ -1,7 +1,8 @@
-use proc_macro::{Delimiter, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, TokenStream, TokenTree};
+use quote::TokenStreamExt;
 
 pub trait Injector {
-    fn inject(self, inner_code: proc_macro2::TokenStream) -> Result<TokenStream, String>;
+    fn inject(self, inner_code: TokenStream) -> Result<TokenStream, String>;
 }
 
 pub fn try_inject(injector: impl Injector, source: TokenStream) -> Result<TokenStream, String> {
@@ -26,10 +27,7 @@ fn extract_inner_body(
     let mut last = None;
     let mut peek = source.peekable();
     while let Some(token) = peek.next() {
-        if peek.peek().is_some() {
-            pre.extend([token.clone()]);
-        }
-        match token {
+        match &token {
             TokenTree::Ident(id) => {
                 let id = id.to_string();
                 match id.as_str() {
@@ -39,8 +37,11 @@ fn extract_inner_body(
                 }
             }
             t => {
-                last = Some(t);
+                last = Some(t.clone());
             }
+        }
+        if peek.peek().is_some() {
+            pre.append(token);
         }
     }
     if !seen_fn_decl {

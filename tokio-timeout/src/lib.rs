@@ -7,14 +7,14 @@ use timeout_macro_parse::parse_attr::{OnError, ParsedDuration, ValidOpts, parse_
 struct TimeoutInjector(ValidOpts);
 
 impl Injector for TimeoutInjector {
-    fn inject(self, inner_code: proc_macro2::TokenStream) -> Result<TokenStream, String> {
+    fn inject(self, inner_code: proc_macro2::TokenStream) -> Result<proc_macro2::TokenStream, String> {
         let dur = match self.0.duration {
             ParsedDuration::Duration(d) => {
                 let secs = d.as_secs();
                 let nanos = d.subsec_nanos();
                 quote::quote! {core::time::Duration::new(#secs, #nanos)}
             }
-            ParsedDuration::Ref(r) => TokenStream::from(TokenTree::Ident(r)).into(),
+            ParsedDuration::Ref(r) => r,
         };
         let on_timeout = match self.0.on_error {
             OnError::Panic => quote::quote! {panic!("timeout") },
@@ -39,6 +39,6 @@ impl Injector for TimeoutInjector {
 
 #[proc_macro_attribute]
 pub fn timeout(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let validated = parse_attr(attr).unwrap();
-    try_inject(TimeoutInjector(validated), item).unwrap()
+    let validated = parse_attr(attr.into()).unwrap();
+    try_inject(TimeoutInjector(validated), item.into()).unwrap().into()
 }
