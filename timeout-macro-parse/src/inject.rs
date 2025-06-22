@@ -1,15 +1,19 @@
+use crate::Error;
 use proc_macro2::{Delimiter, TokenStream, TokenTree};
 use quote::TokenStreamExt;
 
 pub trait Injector {
-    fn inject(self, inner_code: TokenStream) -> Result<TokenStream, String>;
+    fn inject(self, inner_code: TokenStream) -> TokenStream;
 }
 
-pub fn try_inject(injector: impl Injector, source: TokenStream) -> Result<TokenStream, String> {
+pub(crate) fn try_inject(
+    injector: impl Injector,
+    source: TokenStream,
+) -> crate::Result<TokenStream> {
     let mut it = source.into_iter();
     let mut pre = TokenStream::new();
     let inner_body = extract_inner_body(&mut pre, &mut it)?;
-    let res = injector.inject(inner_body)?;
+    let res = injector.inject(inner_body);
     Ok(quote::quote! {
         #pre
         #res
@@ -19,7 +23,7 @@ pub fn try_inject(injector: impl Injector, source: TokenStream) -> Result<TokenS
 fn extract_inner_body(
     pre: &mut TokenStream,
     source: &mut impl Iterator<Item = TokenTree>,
-) -> Result<TokenStream, String> {
+) -> crate::Result<TokenStream> {
     let mut seen_async = false;
     let mut seen_fn_decl = false;
     let mut last = None;
@@ -43,17 +47,25 @@ fn extract_inner_body(
         }
     }
     if !seen_fn_decl {
-        return Err("'timeout' macro used on something without a 'fn' declaration".to_string());
+        return Err(Error::missing_span(
+            "'timeout' macro used on something without a 'fn' declaration".to_string(),
+        ));
     }
     if !seen_async {
-        return Err("'timeout' macro only allowed on async functions".to_string());
+        return Err(Error::missing_span(
+            "'timeout' macro only allowed on async functions".to_string(),
+        ));
     }
     let Some(TokenTree::Group(group)) = last else {
-        return Err("'timeout' macro used on something without a body".to_string());
+        return Err(Error::missing_span(
+            "'timeout' macro used on something without a body".to_string(),
+        ));
     };
-    assert!(
-        matches!(group.delimiter(), Delimiter::Brace),
-        "'timeout' macro used on something without a body (last group not a brace)"
-    );
+    if !matches!(group.delimiter(), Delimiter::Brace) {
+        return Err(Error::with_span(
+            group.span(),
+            "'timeout' macro used on something without a body (last group not a brace)".to_string(),
+        ));
+    }
     Ok(group.stream())
 }
