@@ -8,14 +8,12 @@ pub trait Injector {
 pub fn try_inject(injector: impl Injector, source: TokenStream) -> Result<TokenStream, String> {
     let mut it = source.into_iter();
     let mut pre = TokenStream::new();
-    let inner_body = extract_inner_body(&mut pre, &mut it)?.into();
-    let res: proc_macro2::TokenStream = injector.inject(inner_body)?.into();
-    let pre = proc_macro2::TokenStream::from(pre);
+    let inner_body = extract_inner_body(&mut pre, &mut it)?;
+    let res = injector.inject(inner_body)?;
     Ok(quote::quote! {
         #pre
         #res
-    }
-    .into())
+    })
 }
 
 fn extract_inner_body(

@@ -113,7 +113,7 @@ fn parse_duration(it: &mut impl Iterator<Item = TokenTree>) -> Result<ParsedDura
             let mut stream = TokenStream::new();
             stream.append(next);
             Ok(ParsedDuration::Ref(stream))
-        },
+        }
         TokenTree::Literal(lit) => Ok(ParsedDuration::Duration(
             crate::parse_duration::parse_duration(lit.to_string().as_str())?,
         )),
