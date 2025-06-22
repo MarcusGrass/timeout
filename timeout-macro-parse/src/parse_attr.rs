@@ -27,7 +27,6 @@ struct Opts {
     on_error: Option<OnError>,
 }
 
-#[derive(Debug)]
 pub enum ParsedDuration {
     Duration(Duration),
     Ref(TokenStream),

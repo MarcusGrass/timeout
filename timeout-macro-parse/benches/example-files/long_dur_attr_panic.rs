@@ -1,1 +1,0 @@
-async fn add (first : i64 , second : i64) -> i64 { match tokio :: time :: timeout (core :: time :: Duration :: new (4825u64 , 125000000u32) , async { tokio :: time :: sleep (tokio :: time :: Duration :: from_millis (1)) . await ; first + second }) . await { Ok (v) => v , Err (e) => panic ! ("timeout") } }
