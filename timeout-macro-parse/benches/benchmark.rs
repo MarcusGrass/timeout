@@ -1,4 +1,4 @@
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, Criterion};
 use proc_macro2::TokenStream;
 use std::hint::black_box;
 use std::str::FromStr;

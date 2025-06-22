@@ -1,5 +1,5 @@
-use crate::inject::{Injector, try_inject};
-use crate::parse_attr::{OnError, ParsedDuration, ValidOpts, parse_attr};
+use crate::inject::{try_inject, Injector};
+use crate::parse_attr::{parse_attr, OnError, ParsedDuration, ValidOpts};
 use proc_macro2::TokenStream;
 
 pub mod inject;
@@ -10,6 +10,7 @@ struct TokioTimeoutInjector(ValidOpts);
 
 impl Injector for TokioTimeoutInjector {
     fn inject(self, inner_code: TokenStream) -> Result<TokenStream, String> {
+        eprintln!("{:?}", self.0.duration);
         let dur = match self.0.duration {
             ParsedDuration::Duration(d) => {
                 let secs = d.as_secs();

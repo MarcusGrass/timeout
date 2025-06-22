@@ -1,5 +1,5 @@
 use proc_macro2::{TokenStream, TokenTree};
-use quote::{ToTokens, TokenStreamExt};
+use quote::TokenStreamExt;
 use std::time::Duration;
 
 pub fn parse_attr(attr: TokenStream) -> Result<ValidOpts, String> {
@@ -27,6 +27,7 @@ struct Opts {
     on_error: Option<OnError>,
 }
 
+#[derive(Debug)]
 pub enum ParsedDuration {
     Duration(Duration),
     Ref(TokenStream),
@@ -105,36 +106,74 @@ fn take_next_equals(
 }
 
 fn parse_duration(it: &mut impl Iterator<Item = TokenTree>) -> Result<ParsedDuration, String> {
-    let Some(next) = it.next() else {
+    let Some(mut next) = it.next() else {
         return Err("Expected duration token, got nothing".to_string());
     };
-    match &next {
-        TokenTree::Ident(_id) => {
-            let mut stream = TokenStream::new();
-            stream.append(next);
-            Ok(ParsedDuration::Ref(stream))
+    let mut stream = TokenStream::new();
+    loop {
+        match &next {
+            TokenTree::Ident(_id) => {
+                stream.append(next);
+            }
+            TokenTree::Literal(lit) => {
+                return Ok(ParsedDuration::Duration(
+                    crate::parse_duration::parse_duration(lit.to_string().as_str())?,
+                ))
+            }
+            TokenTree::Punct(p) => {
+                if p.as_char() == ',' {
+                    break Ok(ParsedDuration::Ref(stream));
+                }
+                stream.append(p.clone());
+            }
+            t => return Err(format!("Expected duration literal or ident, got '{}'", t)),
         }
-        TokenTree::Literal(lit) => Ok(ParsedDuration::Duration(
-            crate::parse_duration::parse_duration(lit.to_string().as_str())?,
-        )),
-        t => Err(format!("Expected duration literal or ident, got '{}'", t)),
+        if let Some(n) = it.next() {
+            next = n;
+        } else {
+            break Ok(ParsedDuration::Ref(stream));
+        }
     }
 }
 
 fn parse_on_error(it: &mut impl Iterator<Item = TokenTree>) -> Result<OnError, String> {
-    let Some(next) = it.next() else {
+    let Some(mut next) = it.next() else {
         return Err("Expected 'on_error' token, got nothing".to_string());
     };
-    match next {
-        TokenTree::Literal(lit) => {
-            let lit = lit.to_string();
-            let lit = lit.trim_matches('"');
-            if lit == "panic" {
-                Ok(OnError::Panic)
-            } else {
-                Ok(OnError::Result(lit.to_token_stream()))
+    let mut stream = TokenStream::new();
+    loop {
+        match next {
+            TokenTree::Literal(lit) => {
+                let lit = lit.to_string();
+                let lit = lit.trim_matches('"');
+                return if lit == "panic" {
+                    Ok(OnError::Panic)
+                } else {
+                    Err(format!(
+                        "Got 'on_error' str literal, expected only 'panic', got {lit}"
+                    ))
+                };
+            }
+            TokenTree::Ident(id) => {
+                stream.append(id);
+            }
+            TokenTree::Punct(p) => {
+                if p.as_char() == ',' {
+                    break Ok(OnError::Result(stream));
+                }
+                stream.append(p);
+            }
+            t => {
+                return Err(format!(
+                    "Expected 'on_error' str literal or ident, got '{}'",
+                    t
+                ))
             }
         }
-        t => Err(format!("Expected 'on_error' str literal, got '{}'", t)),
+        if let Some(n) = it.next() {
+            next = n;
+        } else {
+            break Ok(OnError::Result(stream));
+        }
     }
 }
