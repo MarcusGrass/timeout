@@ -1,6 +1,5 @@
 use crate::Error;
 use proc_macro2::{Delimiter, TokenStream, TokenTree};
-use quote::TokenStreamExt;
 
 pub trait Injector {
     fn inject(self, inner_code: TokenStream) -> TokenStream;
@@ -14,10 +13,8 @@ pub(crate) fn try_inject(
     let mut pre = TokenStream::new();
     let inner_body = extract_inner_body(&mut pre, &mut it)?;
     let res = injector.inject(inner_body);
-    Ok(quote::quote! {
-        #pre
-        #res
-    })
+    pre.extend([res]);
+    Ok(pre)
 }
 
 fn extract_inner_body(
@@ -43,7 +40,7 @@ fn extract_inner_body(
             }
         }
         if peek.peek().is_some() {
-            pre.append(token);
+            pre.extend([token]);
         }
     }
     if !seen_fn_decl {

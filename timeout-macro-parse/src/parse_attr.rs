@@ -1,7 +1,7 @@
 use crate::Error;
-use proc_macro2::{TokenStream, TokenTree};
-use quote::TokenStreamExt;
+use proc_macro2::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use std::time::Duration;
+use syn::__private::TokenStreamExt;
 use syn::spanned::Spanned;
 
 pub(crate) fn parse_attr(attr: TokenStream) -> crate::Result<ValidOpts> {
@@ -40,7 +40,28 @@ impl ParsedDuration {
             ParsedDuration::Duration(d) => {
                 let secs = d.as_secs();
                 let nanos = d.subsec_nanos();
-                quote::quote! {core::time::Duration::new(#secs, #nanos)}
+                let mut inner_group = TokenStream::new();
+                inner_group.extend([
+                    TokenTree::Literal(Literal::u64_unsuffixed(secs)),
+                    TokenTree::Punct(Punct::new(',', Spacing::Alone)),
+                    TokenTree::Literal(Literal::u32_suffixed(nanos)),
+                ]);
+                let mut ts = TokenStream::new();
+                let span = Span::call_site();
+                ts.extend([
+                    TokenTree::Ident(Ident::new("core", span)),
+                    TokenTree::Punct(Punct::new(':', Spacing::Joint)),
+                    TokenTree::Punct(Punct::new(':', Spacing::Alone)),
+                    TokenTree::Ident(Ident::new("time", span)),
+                    TokenTree::Punct(Punct::new(':', Spacing::Joint)),
+                    TokenTree::Punct(Punct::new(':', Spacing::Alone)),
+                    TokenTree::Ident(Ident::new("Duration", span)),
+                    TokenTree::Punct(Punct::new(':', Spacing::Joint)),
+                    TokenTree::Punct(Punct::new(':', Spacing::Alone)),
+                    TokenTree::Ident(Ident::new("new", span)),
+                    TokenTree::Group(Group::new(Delimiter::Parenthesis, inner_group)),
+                ]);
+                ts
             }
             ParsedDuration::Ref(r) => r,
         }
@@ -55,9 +76,33 @@ pub enum OnError {
 impl OnError {
     pub fn into_token_stream(self) -> TokenStream {
         match self {
-            OnError::Panic => quote::quote! {panic!("timeout") },
+            OnError::Panic => {
+                let mut group = TokenStream::new();
+                group.extend([TokenTree::Literal(Literal::string("timeout"))]);
+                let mut ts = TokenStream::new();
+                let span = Span::call_site();
+                ts.extend([
+                    TokenTree::Ident(Ident::new("panic", span)),
+                    TokenTree::Punct(Punct::new('!', Spacing::Alone)),
+                    TokenTree::Group(Group::new(Delimiter::Parenthesis, group)),
+                ]);
+                ts
+            }
             OnError::Result(e) => {
-                quote::quote! { Err(#e("timeout"))}
+                let mut inner_group = TokenStream::new();
+                inner_group.extend([TokenTree::Literal(Literal::string("timeout"))]);
+                let mut outer_group = TokenStream::new();
+                outer_group.extend(e);
+                outer_group.extend([TokenTree::Group(Group::new(
+                    Delimiter::Parenthesis,
+                    inner_group,
+                ))]);
+                let mut ts = TokenStream::new();
+                ts.extend([
+                    TokenTree::Ident(Ident::new("Err", Span::call_site())),
+                    TokenTree::Group(Group::new(Delimiter::Parenthesis, outer_group)),
+                ]);
+                ts
             }
         }
     }
@@ -164,7 +209,7 @@ fn parse_duration(it: &mut impl Iterator<Item = TokenTree>) -> crate::Result<Par
     loop {
         match &next {
             TokenTree::Ident(_id) => {
-                stream.append(next);
+                stream.extend([next]);
             }
             TokenTree::Literal(lit) => {
                 return Ok(ParsedDuration::Duration(
@@ -176,7 +221,7 @@ fn parse_duration(it: &mut impl Iterator<Item = TokenTree>) -> crate::Result<Par
                 if p.as_char() == ',' {
                     break Ok(ParsedDuration::Ref(stream));
                 }
-                stream.append(p.clone());
+                stream.extend([next]);
             }
             t => {
                 return Err(Error::with_span(
