@@ -1,6 +1,6 @@
 use crate::inject::{try_inject, Injector};
 use crate::parse_attr::{parse_attr, ValidOpts};
-use proc_macro2::TokenStream;
+use proc_macro2::{Delimiter, Group, Ident, Punct, Spacing, Span, TokenStream, TokenTree};
 use std::fmt::Display;
 use syn::spanned::Spanned;
 
@@ -45,14 +45,48 @@ impl Injector for TokioTimeoutInjector {
     fn inject(self, inner_code: TokenStream) -> TokenStream {
         let dur = self.0.duration.into_token_stream();
         let on_timeout = self.0.on_error.into_token_stream();
-        quote::quote! {
-            {
-                match tokio::time::timeout( #dur, async { #inner_code } ).await {
-                    Ok(v) => v,
-                    Err(e) => #on_timeout
-                }
-            }
-        }
+        let mut inner = TokenStream::new();
+        let span = Span::call_site();
+        let mut timeout_args = TokenStream::new();
+        timeout_args.extend(dur);
+        timeout_args.extend([
+            TokenTree::Punct(Punct::new(',', Spacing::Alone)),
+            TokenTree::Ident(Ident::new("async", span)),
+            TokenTree::Group(Group::new(Delimiter::Brace, inner_code)),
+        ]);
+        let mut match_body = TokenStream::new();
+        let mut value_group = TokenStream::new();
+        value_group.extend([TokenTree::Ident(Ident::new("v", span))]);
+        let mut err_group = TokenStream::new();
+        err_group.extend([TokenTree::Ident(Ident::new("e", span))]);
+        match_body.extend([
+            TokenTree::Ident(Ident::new("Ok", span)),
+            TokenTree::Group(Group::new(Delimiter::Parenthesis, value_group)),
+            TokenTree::Punct(Punct::new('=', Spacing::Joint)),
+            TokenTree::Punct(Punct::new('>', Spacing::Alone)),
+            TokenTree::Ident(Ident::new("v", span)),
+            TokenTree::Punct(Punct::new(',', Spacing::Alone)),
+            TokenTree::Ident(Ident::new("Err", span)),
+            TokenTree::Group(Group::new(Delimiter::Parenthesis, err_group)),
+            TokenTree::Punct(Punct::new('=', Spacing::Joint)),
+            TokenTree::Punct(Punct::new('>', Spacing::Alone)),
+        ]);
+        match_body.extend(on_timeout);
+        inner.extend([
+            TokenTree::Ident(Ident::new("match", span)),
+            TokenTree::Ident(Ident::new("tokio", span)),
+            TokenTree::Punct(Punct::new(':', Spacing::Joint)),
+            TokenTree::Punct(Punct::new(':', Spacing::Alone)),
+            TokenTree::Ident(Ident::new("time", span)),
+            TokenTree::Punct(Punct::new(':', Spacing::Joint)),
+            TokenTree::Punct(Punct::new(':', Spacing::Alone)),
+            TokenTree::Ident(Ident::new("timeout", span)),
+            TokenTree::Group(Group::new(Delimiter::Parenthesis, timeout_args)),
+            TokenTree::Punct(Punct::new('.', Spacing::Alone)),
+            TokenTree::Ident(Ident::new("await", span)),
+            TokenTree::Group(Group::new(Delimiter::Brace, match_body)),
+        ]);
+        TokenStream::from(TokenTree::Group(Group::new(Delimiter::Brace, inner)))
     }
 }
 
