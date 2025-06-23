@@ -3,9 +3,6 @@ members = ["timeout-macro-parse", "tokio-timeout"]
 resolver = "2"
 
 [workspace.dependencies]
-proc-macro2 = "1.0.95"
-quote = "1.0.40"
-syn = "2.0.103"
 
 timeout-macro-parse = { path = "./timeout-macro-parse" }
 

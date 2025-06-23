@@ -1,5 +1,5 @@
 use crate::Error;
-use proc_macro2::{Delimiter, TokenStream, TokenTree};
+use proc_macro::{Delimiter, TokenStream, TokenTree};
 
 pub trait Injector {
     fn inject(self, inner_code: TokenStream) -> TokenStream;

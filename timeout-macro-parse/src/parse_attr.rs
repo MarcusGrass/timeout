@@ -1,8 +1,6 @@
 use crate::Error;
-use proc_macro2::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use std::time::Duration;
-use syn::__private::TokenStreamExt;
-use syn::spanned::Spanned;
 
 pub(crate) fn parse_attr(attr: TokenStream) -> crate::Result<ValidOpts> {
     let mut opts = Opts::default();
@@ -151,10 +149,10 @@ fn take_next(cur: &mut Opts, it: &mut impl Iterator<Item = TokenTree>) -> crate:
     match attrs {
         Attributes::Duration => {
             if cur.duration.is_some() {
-                return Err(Error::Parse(syn::Error::new(
+                return Err(Error::with_span(
                     id.span(),
                     "Duplicate 'duration' attribute",
-                )));
+                ));
             }
             take_next_equals(it, "duration").map_err(|e| e.with_span_if_missing(id.span()))?;
             cur.duration = Some(parse_duration(it)?);
@@ -191,10 +189,10 @@ fn take_next_equals(
         ));
     };
     if p.as_char() != '=' {
-        return Err(crate::Error::Parse(syn::Error::new(
+        return Err(Error::with_span(
             p.span(),
             format!("Expected '=' after '{}', found '{}'", attr, p),
-        )));
+        ));
     }
     Ok(())
 }
@@ -246,33 +244,33 @@ fn parse_on_error(it: &mut impl Iterator<Item = TokenTree>) -> crate::Result<OnE
     };
     let mut stream = TokenStream::new();
     loop {
-        match next {
+        match &next {
             TokenTree::Literal(lit) => {
-                let lit = lit.to_string();
-                let lit = lit.trim_matches('"');
-                return if lit == "panic" {
+                let lit_s = lit.to_string();
+                let lit_s = lit_s.trim_matches('"');
+                return if lit_s == "panic" {
                     Ok(OnError::Panic)
                 } else {
-                    Err(Error::Parse(syn::Error::new(
+                    Err(Error::with_span(
                         lit.span(),
                         format!("Got 'on_error' str literal, expected only 'panic', got {lit}"),
-                    )))
+                    ))
                 };
             }
-            TokenTree::Ident(id) => {
-                stream.append(id);
+            TokenTree::Ident(_id) => {
+                stream.extend([next]);
             }
             TokenTree::Punct(p) => {
                 if p.as_char() == ',' {
                     break Ok(OnError::Result(stream));
                 }
-                stream.append(p);
+                stream.extend([next]);
             }
             t => {
-                return Err(Error::Parse(syn::Error::new(
+                return Err(Error::with_span(
                     t.span(),
                     format!("Expected 'on_error' str literal or ident, got '{}'", t),
-                )));
+                ));
             }
         }
         if let Some(n) = it.next() {

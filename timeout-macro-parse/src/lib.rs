@@ -1,9 +1,12 @@
+extern crate proc_macro;
+
+use crate::compile_error::to_compile_error;
 use crate::inject::{try_inject, Injector};
 use crate::parse_attr::{parse_attr, ValidOpts};
-use proc_macro2::{Delimiter, Group, Ident, Punct, Spacing, Span, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Group, Ident, Punct, Spacing, Span, TokenStream, TokenTree};
 use std::fmt::Display;
-use syn::spanned::Spanned;
 
+mod compile_error;
 pub mod inject;
 pub mod parse_attr;
 pub mod parse_duration;
@@ -11,7 +14,7 @@ pub mod parse_duration;
 struct TokioTimeoutInjector(ValidOpts);
 
 pub(crate) enum Error {
-    Parse(syn::Error),
+    Parse(Span, String),
     ParseSpanMissing(String),
 }
 
@@ -20,21 +23,21 @@ impl Error {
         Self::ParseSpanMissing(msg)
     }
 
-    pub fn with_span<T: Display>(span: proc_macro2::Span, msg: T) -> Self {
-        Self::Parse(syn::Error::new(span, msg))
+    pub fn with_span<T: Display>(span: Span, msg: T) -> Self {
+        Self::Parse(span, msg.to_string())
     }
 
-    pub fn with_span_if_missing(self, span: proc_macro2::Span) -> Self {
+    pub fn with_span_if_missing(self, span: Span) -> Self {
         match self {
-            Self::Parse(ref _p) => self,
-            Self::ParseSpanMissing(e) => Self::Parse(syn::Error::new(span, e)),
+            Self::Parse(_, _) => self,
+            Self::ParseSpanMissing(e) => Self::Parse(span, e),
         }
     }
 
-    pub fn into_to_syn_with_fallback_span(self, span: proc_macro2::Span) -> syn::Error {
+    pub fn into_token_stream_with_fallback_span(self, span: Span) -> TokenStream {
         match self {
-            Self::Parse(p) => p.clone(),
-            Self::ParseSpanMissing(e) => syn::Error::new(span, e),
+            Self::Parse(p, msg) => to_compile_error(&msg, p),
+            Self::ParseSpanMissing(e) => to_compile_error(&e, span),
         }
     }
 }
@@ -91,20 +94,12 @@ impl Injector for TokioTimeoutInjector {
 }
 
 pub fn tokio_timeout(attr: TokenStream, item: TokenStream) -> TokenStream {
-    let attr_span = attr.span();
     let validated = match parse_attr(attr) {
         Ok(o) => o,
         Err(e) => {
-            return e
-                .into_to_syn_with_fallback_span(attr_span)
-                .to_compile_error();
+            return e.into_token_stream_with_fallback_span(Span::call_site());
         }
     };
-    let item_span = item.span();
-    match try_inject(TokioTimeoutInjector(validated), item) {
-        Ok(o) => o,
-        Err(e) => e
-            .into_to_syn_with_fallback_span(item_span)
-            .to_compile_error(),
-    }
+    try_inject(TokioTimeoutInjector(validated), item)
+        .unwrap_or_else(|e| e.into_token_stream_with_fallback_span(Span::call_site()))
 }
