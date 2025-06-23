@@ -3,7 +3,10 @@ extern crate proc_macro;
 use crate::compile_error::to_compile_error;
 use crate::inject::{try_inject, Injector};
 use crate::parse_attr::{parse_attr, ValidOpts};
+#[cfg(not(feature = "test"))]
 use proc_macro::{Delimiter, Group, Ident, Punct, Spacing, Span, TokenStream, TokenTree};
+#[cfg(feature = "test")]
+use proc_macro2::{Delimiter, Group, Ident, Punct, Spacing, Span, TokenStream, TokenTree};
 use std::fmt::Display;
 
 mod compile_error;

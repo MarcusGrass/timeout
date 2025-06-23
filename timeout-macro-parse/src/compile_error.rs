@@ -2,8 +2,10 @@
 //! The file at that commit can be found at [github here](https://github.com/dtolnay/syn/blob/f2588dcf1b4be92817d6e920d4267e0a160bc618/src/error.rs)
 //! Licensed under MIT, the license at the same commit can be found at
 //! [github here](https://github.com/dtolnay/syn/blob/f2588dcf1b4be92817d6e920d4267e0a160bc618/LICENSE-MIT)
-use proc_macro::TokenStream;
-use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenTree};
+#[cfg(not(feature = "test"))]
+use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+#[cfg(feature = "test")]
+use proc_macro2::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 
 pub(crate) fn to_compile_error(message: &str, span: Span) -> TokenStream {
     // ::core::compile_error!($message)

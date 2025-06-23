@@ -1,5 +1,8 @@
 use crate::Error;
+#[cfg(not(feature = "test"))]
 use proc_macro::{Delimiter, TokenStream, TokenTree};
+#[cfg(feature = "test")]
+use proc_macro2::{Delimiter, TokenStream, TokenTree};
 
 pub trait Injector {
     fn inject(self, inner_code: TokenStream) -> TokenStream;

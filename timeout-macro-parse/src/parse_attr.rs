@@ -1,5 +1,8 @@
 use crate::Error;
+#[cfg(not(feature = "test"))]
 use proc_macro::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
+#[cfg(feature = "test")]
+use proc_macro2::{Delimiter, Group, Ident, Literal, Punct, Spacing, Span, TokenStream, TokenTree};
 use std::time::Duration;
 
 pub(crate) fn parse_attr(attr: TokenStream) -> crate::Result<ValidOpts> {
