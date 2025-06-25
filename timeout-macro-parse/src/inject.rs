@@ -1,11 +1,11 @@
 use crate::Error;
 #[cfg(not(feature = "test"))]
-use proc_macro::{Delimiter, TokenStream, TokenTree};
+use proc_macro::{Delimiter, Span, TokenStream, TokenTree};
 #[cfg(feature = "test")]
-use proc_macro2::{Delimiter, TokenStream, TokenTree};
+use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
 
 pub trait Injector {
-    fn inject(self, inner_code: TokenStream) -> TokenStream;
+    fn inject(self, fn_name: &str, inner_code: TokenStream) -> TokenStream;
 }
 
 pub(crate) fn try_inject(
@@ -14,8 +14,8 @@ pub(crate) fn try_inject(
 ) -> crate::Result<TokenStream> {
     let mut it = source.into_iter();
     let mut pre = TokenStream::new();
-    let inner_body = extract_inner_body(&mut pre, &mut it)?;
-    let res = injector.inject(inner_body);
+    let (fn_name, inner_body) = extract_inner_body(&mut pre, &mut it)?;
+    let res = injector.inject(&fn_name, inner_body);
     pre.extend([res]);
     Ok(pre)
 }
@@ -23,9 +23,10 @@ pub(crate) fn try_inject(
 fn extract_inner_body(
     pre: &mut TokenStream,
     source: &mut impl Iterator<Item = TokenTree>,
-) -> crate::Result<TokenStream> {
+) -> crate::Result<(String, TokenStream)> {
     let mut seen_async = false;
     let mut seen_fn_decl = false;
+    let mut fn_name = None;
     let mut last = None;
     let mut peek = source.peekable();
     while let Some(token) = peek.next() {
@@ -35,8 +36,17 @@ fn extract_inner_body(
                 match id.as_str() {
                     "async" => seen_async = true,
                     "fn" => seen_fn_decl = true,
+                    maybe_fn_name if seen_async && seen_fn_decl && fn_name.is_none() => {
+                        fn_name = Some(maybe_fn_name.to_string());
+                    }
                     _ => {}
                 }
+            }
+            t if seen_async && seen_fn_decl && fn_name.is_none() => {
+                return Err(Error::with_span(
+                    t.span(),
+                    "unexpected token, expected fn name".to_string(),
+                ))
             }
             t => {
                 last = Some(t.clone());
@@ -67,5 +77,11 @@ fn extract_inner_body(
             "'timeout' macro used on something without a body (last group not a brace)".to_string(),
         ));
     }
-    Ok(group.stream())
+    let Some(fn_name) = fn_name else {
+        return Err(Error::with_span(
+            Span::call_site(),
+            "'timeout' macro unable to find fn name",
+        ));
+    };
+    Ok((fn_name, group.stream()))
 }

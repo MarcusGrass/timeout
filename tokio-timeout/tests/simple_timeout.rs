@@ -31,6 +31,19 @@ pub async fn my_will_time_out_const() -> Result<String, MyErr> {
     Ok("".to_string())
 }
 
+pub struct StructWithTimeoutImpl;
+
+impl StructWithTimeoutImpl {
+    #[timeout(duration = "1ms", on_error = "panic")]
+    pub async fn static_timeout_method() {}
+
+    #[timeout(duration = "5ms", on_error = "panic")]
+    pub async fn with_self_timeout_method(&self) {}
+
+    #[timeout(duration = "5ms", on_error = "panic")]
+    pub async fn with_generics_timeout_method<T, R>(&self, _t: T, _r: R) {}
+}
+
 #[tokio::test]
 async fn smoke_times_out() {
     let err = my_will_time_out_fn().await.err().unwrap();

@@ -46,6 +46,7 @@ use proc_macro::TokenStream;
 /// or something that can be invoked with a `&'static str` to produce an error.
 ///
 /// ```
+///
 /// fn to_error_result(s: &str) -> Result<(), String>{
 ///    Err(s.to_string())
 /// }
@@ -77,6 +78,12 @@ use proc_macro::TokenStream;
 /// #[tokio_timeout::timeout(duration = "5h4m3s2ms", on_error = print_err)]
 /// async fn my_print_timeout_fn() {
 ///     println!("hello!");
+/// }
+///
+/// #[tokio_timeout::timeout(duration = "5h4m3s2ms", on_error = anyhow::bail!)]
+/// async fn anyhow_err_fn() -> anyhow::Result<()> {
+///     println!("hello!");
+///     Ok(())
 /// }
 ///
 /// ```
