@@ -159,7 +159,7 @@ by `1ms` if used on 500 functions.
 
 # License
 
-This project is licensed under the MIT license.
+This project is licensed under the MIT license, it can be found [here](./LICENSE).
 
 Additionally, some code was copied from `syn`, you can find that code and a link to the original code and license
 at the top of the file [here](./timeout-macro-parse/src/compile_error.rs).  
