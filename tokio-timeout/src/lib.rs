@@ -46,11 +46,11 @@ use proc_macro::TokenStream;
 /// or something that can be invoked with a `&'static str` to produce an error.
 ///
 /// ```
-/// fn print_err(s: &str) -> String{
-///    s.to_string()
+/// fn to_error_result(s: &str) -> Result<(), String>{
+///    Err(s.to_string())
 /// }
 ///
-/// #[tokio_timeout::timeout(duration = "5h4m3s2ms", on_error = print_err)]
+/// #[tokio_timeout::timeout(duration = "5h4m3s2ms", on_error = to_error_result)]
 /// async fn my_fn_string_err() -> Result<(), String>{
 ///     println!("hello!");
 ///     Ok(())
@@ -60,11 +60,26 @@ use proc_macro::TokenStream;
 ///     Timeout(&'static str)
 /// }
 ///
-/// #[tokio_timeout::timeout(duration = "5h4m3s2ms", on_error = MyErr::Timeout)]
+/// const fn to_error_enum(s: &'static str) -> Result<(), MyErr> {
+///     Err(MyErr::Timeout(s))
+/// }
+///
+/// #[tokio_timeout::timeout(duration = "5h4m3s2ms", on_error = to_error_enum)]
 /// async fn my_fn_enum_err() -> Result<(), MyErr>{
 ///     println!("hello!");
 ///     Ok(())
 /// }
+///
+/// fn print_err(s: &'static str) {
+///     eprintln!("oh no: {s}")
+/// }
+///
+/// #[tokio_timeout::timeout(duration = "5h4m3s2ms", on_error = print_err)]
+/// async fn my_print_timeout_fn() {
+///     println!("hello!");
+///     Ok(())
+/// }
+///
 /// ```
 ///
 /// ```compile_fail

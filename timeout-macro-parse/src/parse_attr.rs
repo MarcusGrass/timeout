@@ -98,12 +98,7 @@ impl OnError {
                     Delimiter::Parenthesis,
                     inner_group,
                 ))]);
-                let mut ts = TokenStream::new();
-                ts.extend([
-                    TokenTree::Ident(Ident::new("Err", Span::call_site())),
-                    TokenTree::Group(Group::new(Delimiter::Parenthesis, outer_group)),
-                ]);
-                ts
+                outer_group
             }
         }
     }
