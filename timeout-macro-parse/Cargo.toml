@@ -3,6 +3,13 @@ name = "timeout-macro-parse"
 version = "0.1.0"
 license = "MIT"
 edition = "2021"
+readme = "../Readme.md"
+repository = "https://github.com/MarcusGrass/timeout"
+homepage = "https://github.com/MarcusGrass/timeout"
+description = "A companion-crate for the tokio-timeout proc-macro-lib"
+documentation = "https://docs.rs/tokio-timeout"
+categories = ["asynchronous", "rust-patterns"]
+keywords = ["async", "macro", "tokio"]
 
 [features]
 default = []

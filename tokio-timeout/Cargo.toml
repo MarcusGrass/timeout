@@ -3,6 +3,13 @@ name = "tokio-timeout"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+readme = "../Readme.md"
+repository = "https://github.com/MarcusGrass/timeout"
+homepage = "https://github.com/MarcusGrass/timeout"
+description = "A proc-macro which adds a timeout to an asynchronous function running under the tokio runtime"
+documentation = "https://docs.rs/tokio-timeout"
+categories = ["asynchronous", "rust-patterns"]
+keywords = ["async", "macro", "tokio"]
 
 [lib]
 proc-macro = true
