@@ -77,7 +77,6 @@ use proc_macro::TokenStream;
 /// #[tokio_timeout::timeout(duration = "5h4m3s2ms", on_error = print_err)]
 /// async fn my_print_timeout_fn() {
 ///     println!("hello!");
-///     Ok(())
 /// }
 ///
 /// ```

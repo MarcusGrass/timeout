@@ -36,6 +36,17 @@ pub enum ParsedDuration {
 }
 
 impl ParsedDuration {
+    fn to_error_display(&self) -> String {
+        match self {
+            ParsedDuration::Duration(d) => {
+                format!("timed out after {}s{}ns", d.as_secs(), d.subsec_nanos())
+            }
+            ParsedDuration::Ref(r) => {
+                format!("timed out after duration from {}", r)
+            }
+        }
+    }
+
     pub fn into_token_stream(self) -> TokenStream {
         match self {
             ParsedDuration::Duration(d) => {
@@ -75,11 +86,12 @@ pub enum OnError {
 }
 
 impl OnError {
-    pub fn into_token_stream(self) -> TokenStream {
+    pub fn into_token_stream(self, parsed_duration: &ParsedDuration) -> TokenStream {
+        let disp = parsed_duration.to_error_display();
         match self {
             OnError::Panic => {
                 let mut group = TokenStream::new();
-                group.extend([TokenTree::Literal(Literal::string("timeout"))]);
+                group.extend([TokenTree::Literal(Literal::string(&disp))]);
                 let mut ts = TokenStream::new();
                 let span = Span::call_site();
                 ts.extend([
@@ -91,7 +103,7 @@ impl OnError {
             }
             OnError::Result(e) => {
                 let mut inner_group = TokenStream::new();
-                inner_group.extend([TokenTree::Literal(Literal::string("timeout"))]);
+                inner_group.extend([TokenTree::Literal(Literal::string(&disp))]);
                 let mut outer_group = TokenStream::new();
                 outer_group.extend(e);
                 outer_group.extend([TokenTree::Group(Group::new(

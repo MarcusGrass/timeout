@@ -49,8 +49,8 @@ pub(crate) type Result<T> = core::result::Result<T, Error>;
 
 impl Injector for TokioTimeoutInjector {
     fn inject(self, inner_code: TokenStream) -> TokenStream {
+        let on_timeout = self.0.on_error.into_token_stream(&self.0.duration);
         let dur = self.0.duration.into_token_stream();
-        let on_timeout = self.0.on_error.into_token_stream();
         let mut inner = TokenStream::new();
         let span = Span::call_site();
         let mut timeout_args = TokenStream::new();
