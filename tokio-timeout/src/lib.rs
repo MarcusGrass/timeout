@@ -3,7 +3,7 @@ use proc_macro::TokenStream;
 /// # Timeout macro
 ///
 /// A proc macro attribute that can be put on an async function, running within a
-/// tokio runtime, which wraps the function in `tokio::time::timeout`
+/// tokio runtime, with the feature `time` enabled, which wraps the function in `tokio::time::timeout`
 ///
 /// ```
 /// #[tokio_timeout::timeout(duration = "1s", on_error = "panic")]
