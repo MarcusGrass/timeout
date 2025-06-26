@@ -1,2 +1,2 @@
 #!/bin/sh
-cargo bench --features test
+cargo +stable bench --features bench

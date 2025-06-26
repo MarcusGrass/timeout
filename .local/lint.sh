@@ -1,2 +1,2 @@
 #!/bin/sh
-cargo fmt --all && cargo clippy && cargo clippy --all-targets --features test
+cargo fmt --all && cargo clippy && cargo clippy --tests --features test
