@@ -492,12 +492,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "timeout-macro-parse"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "86693af1d05033d5a3f7f9e08efc067e4c303df2340e915cdcd6286a640a2c8e"
-
-[[package]]
 name = "tinytemplate"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -534,7 +528,7 @@ name = "tokio-timeout"
 version = "0.1.1"
 dependencies = [
  "anyhow",
- "timeout-macro-parse 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "timeout-macro-parse",
  "tokio",
 ]
 
