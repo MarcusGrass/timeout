@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 use proc_macro::TokenStream;
 
 /// # Timeout macro
@@ -12,7 +13,7 @@ use proc_macro::TokenStream;
 /// }
 /// ```
 ///
-/// It takes two mandatory arguments 'duration' and 'on_error'.
+/// It takes two mandatory arguments 'duration' and `on_error`.
 ///
 /// ## Duration
 ///

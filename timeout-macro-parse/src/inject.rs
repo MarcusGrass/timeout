@@ -4,7 +4,7 @@ use proc_macro::{Delimiter, Span, TokenStream, TokenTree};
 #[cfg(feature = "test")]
 use proc_macro2::{Delimiter, Span, TokenStream, TokenTree};
 
-pub trait Injector {
+pub(crate) trait Injector {
     fn inject(self, fn_name: &str, inner_code: TokenStream) -> TokenStream;
 }
 

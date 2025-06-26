@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 extern crate proc_macro;
 
 use crate::compile_error::to_compile_error;
@@ -10,9 +11,9 @@ use proc_macro2::{Delimiter, Group, Ident, Punct, Spacing, Span, TokenStream, To
 use std::fmt::Display;
 
 mod compile_error;
-pub mod inject;
-pub mod parse_attr;
-pub mod parse_duration;
+mod inject;
+mod parse_attr;
+mod parse_duration;
 
 struct TokioTimeoutInjector(ValidOpts);
 
@@ -22,22 +23,22 @@ pub(crate) enum Error {
 }
 
 impl Error {
-    pub fn missing_span(msg: String) -> Self {
+    pub(crate) fn missing_span(msg: String) -> Self {
         Self::ParseSpanMissing(msg)
     }
 
-    pub fn with_span<T: Display>(span: Span, msg: T) -> Self {
+    pub(crate) fn with_span<T: Display>(span: Span, msg: T) -> Self {
         Self::Parse(span, msg.to_string())
     }
 
-    pub fn with_span_if_missing(self, span: Span) -> Self {
+    pub(crate) fn with_span_if_missing(self, span: Span) -> Self {
         match self {
             Self::Parse(_, _) => self,
             Self::ParseSpanMissing(e) => Self::Parse(span, e),
         }
     }
 
-    pub fn into_token_stream_with_fallback_span(self, span: Span) -> TokenStream {
+    pub(crate) fn into_token_stream_with_fallback_span(self, span: Span) -> TokenStream {
         match self {
             Self::Parse(p, msg) => to_compile_error(&msg, p),
             Self::ParseSpanMissing(e) => to_compile_error(&e, span),
@@ -97,6 +98,7 @@ impl Injector for TokioTimeoutInjector {
     }
 }
 
+#[must_use]
 pub fn tokio_timeout(attr: TokenStream, item: TokenStream) -> TokenStream {
     let validated = match parse_attr(attr) {
         Ok(o) => o,

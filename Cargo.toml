@@ -5,6 +5,3 @@ resolver = "2"
 [workspace.dependencies]
 
 timeout-macro-parse = { path = "./timeout-macro-parse" }
-
-[workspace.lints.clippy]
-pedantic = { priority = -1, level = "warn" }

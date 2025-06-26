@@ -14,13 +14,13 @@ fn my_err(msg: &'static str) -> Result<String, MyErr> {
 
 #[timeout(duration = "5ms", on_error = my_err)]
 pub async fn my_res_fn() -> Result<String, MyErr> {
-    Ok("".to_string())
+    Ok(String::new())
 }
 
 #[timeout(duration = "1ms", on_error = my_err)]
 pub async fn my_will_time_out_fn() -> Result<String, MyErr> {
     tokio::time::sleep(core::time::Duration::from_millis(1000)).await;
-    Ok("".to_string())
+    Ok(String::new())
 }
 
 const MY_DUR: Duration = Duration::from_millis(1);
@@ -28,7 +28,7 @@ const MY_DUR: Duration = Duration::from_millis(1);
 #[timeout(duration = crate::MY_DUR, on_error = my_err)]
 pub async fn my_will_time_out_const() -> Result<String, MyErr> {
     tokio::time::sleep(core::time::Duration::from_millis(1000)).await;
-    Ok("".to_string())
+    Ok(String::new())
 }
 
 pub struct StructWithTimeoutImpl;

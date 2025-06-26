@@ -19,9 +19,9 @@ pub(crate) fn parse_attr(attr: TokenStream) -> crate::Result<ValidOpts> {
     })
 }
 
-pub struct ValidOpts {
-    pub duration: ParsedDuration,
-    pub on_error: OnError,
+pub(crate) struct ValidOpts {
+    pub(crate) duration: ParsedDuration,
+    pub(crate) on_error: OnError,
 }
 
 #[derive(Default)]
@@ -30,13 +30,14 @@ struct Opts {
     on_error: Option<OnError>,
 }
 
-pub enum ParsedDuration {
+pub(crate) enum ParsedDuration {
     Duration(Duration),
     Ref(TokenStream),
 }
 
 impl ParsedDuration {
-    pub fn to_error_display(&self, fn_name: &str) -> String {
+    #[must_use]
+    pub(crate) fn to_error_display(&self, fn_name: &str) -> String {
         match self {
             ParsedDuration::Duration(d) => {
                 format!(
@@ -46,12 +47,13 @@ impl ParsedDuration {
                 )
             }
             ParsedDuration::Ref(r) => {
-                format!("'{fn_name}' timed out after duration from {}", r)
+                format!("'{fn_name}' timed out after duration from {r}")
             }
         }
     }
 
-    pub fn into_token_stream(self) -> TokenStream {
+    #[must_use]
+    pub(crate) fn into_token_stream(self) -> TokenStream {
         match self {
             ParsedDuration::Duration(d) => {
                 let secs = d.as_secs();
@@ -84,13 +86,14 @@ impl ParsedDuration {
     }
 }
 
-pub enum OnError {
+pub(crate) enum OnError {
     Panic,
     Result(TokenStream),
 }
 
 impl OnError {
-    pub fn into_token_stream(self, err_disp: &str) -> TokenStream {
+    #[must_use]
+    pub(crate) fn into_token_stream(self, err_disp: &str) -> TokenStream {
         match self {
             OnError::Panic => {
                 let mut group = TokenStream::new();
@@ -137,7 +140,7 @@ fn take_next(cur: &mut Opts, it: &mut impl Iterator<Item = TokenTree>) -> crate:
                     unk => {
                         return Err(Error::with_span(
                             id.span(),
-                            format!("Unknown attribute: {}", unk),
+                            format!("Unknown attribute: {unk}"),
                         ));
                     }
                 };
@@ -154,7 +157,7 @@ fn take_next(cur: &mut Opts, it: &mut impl Iterator<Item = TokenTree>) -> crate:
             t => {
                 return Err(Error::with_span(
                     t.span(),
-                    format!("Unexpected token: '{}'", t),
+                    format!("Unexpected token: '{t}'"),
                 ));
             }
         }
@@ -191,20 +194,19 @@ fn take_next_equals(
 ) -> crate::Result<()> {
     let Some(next) = it.next() else {
         return Err(Error::missing_span(format!(
-            "Expected '=' after '{}', found nothing",
-            attr
+            "Expected '=' after '{attr}', found nothing",
         )));
     };
     let TokenTree::Punct(p) = next else {
         return Err(Error::with_span(
             next.span(),
-            format!("Expected '=' after '{}', found '{}'", attr, next),
+            format!("Expected '=' after '{attr}', found '{next}'"),
         ));
     };
     if p.as_char() != '=' {
         return Err(Error::with_span(
             p.span(),
-            format!("Expected '=' after '{}', found '{}'", attr, p),
+            format!("Expected '=' after '{attr}', found '{p}'"),
         ));
     }
     Ok(())
@@ -234,10 +236,10 @@ fn parse_duration(it: &mut impl Iterator<Item = TokenTree>) -> crate::Result<Par
                 }
                 stream.extend([next]);
             }
-            t => {
+            t @ TokenTree::Group(_) => {
                 return Err(Error::with_span(
                     t.span(),
-                    format!("Expected duration literal or ident, got '{}'", t),
+                    format!("Expected duration literal or ident, got '{t}'"),
                 ))
             }
         }
@@ -279,10 +281,10 @@ fn parse_on_error(it: &mut impl Iterator<Item = TokenTree>) -> crate::Result<OnE
                 }
                 stream.extend([next]);
             }
-            t => {
+            t @ TokenTree::Group(_) => {
                 return Err(Error::with_span(
                     t.span(),
-                    format!("Expected 'on_error' str literal or ident, got '{}'", t),
+                    format!("Expected 'on_error' str literal or ident, got '{t}'"),
                 ));
             }
         }
