@@ -15,7 +15,7 @@ keywords = ["async", "macro", "tokio"]
 proc-macro = true
 
 [dependencies]
-timeout-macro-parse = "0.1.0"
+timeout-macro-parse = { workspace = true }
 
 [dev-dependencies]
 anyhow = "1.0.98"
