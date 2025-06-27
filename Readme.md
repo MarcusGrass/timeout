@@ -4,7 +4,29 @@ You can, at the time of writing, find that project [here](https://github.com/tok
 
 ---
 
-# Timeout macro
+# tokio-timeout
+
+[![CI][ci-badge]][ci-url]
+[![Crates.io][crates-badge]][crates-url]
+[![docs][docs-badge]][docs-url]
+[![MIT licensed][mit-badge]][mit-url]
+
+[ci-badge]: https://github.com/MarcusGrass/timeout/actions/workflows/check.yml/badge.svg?branch=main
+
+[ci-url]: https://github.com/MarcusGrass/timeout/actions/workflows/check.yml
+
+[crates-badge]: https://img.shields.io/crates/v/tokio-timeout.svg
+
+[crates-url]: https://crates.io/crates/tokio-timeout
+
+[docs-badge]: https://img.shields.io/docsrs/tokio-timeout/latest
+
+[docs-url]: https://docs.rs/tokio-timeout/latest/tokio_timeout
+
+[mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
+
+[mit-url]: https://github.com/MarcusGrass/tokio-timeout/blob/master/LICENSE
+
 
 A proc macro attribute that can be put on an async function, running within a
 tokio runtime, with the feature `time` enabled, which wraps the function in `tokio::time::timeout`.
