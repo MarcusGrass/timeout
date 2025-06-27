@@ -38,9 +38,24 @@ async fn my_fn() {
 }
 ```
 
-It takes two mandatory arguments 'duration' and 'on_error'.
+## Why
 
-## Duration
+In most of the asynchronous code that I write, a function has an upper limit of time
+that it's supposed to run, it's just not codified. From http-requests, to reading/writing from disk,
+awaiting a message from a channel, or whatever else. Not having a timeout is just hoping for the best,
+which isn't particularly robust.
+
+Adding timeouts to functions can be fairly cumbersome. If wanting to add timeout to all asynchronous calls in the code
+base,
+that requires restructuring blocks and matching on the potential timeout-case for each of the functions.
+
+That's the reason that I wrote this minimal wrapping proc-macro.
+
+## Usage
+
+The macro takes two mandatory arguments 'duration' and 'on_error'.
+
+### Duration
 
 'Duration' can be either a string-literal that specifies a duration,
 valid values are `<n>h` for hours, `<n>m` for minutes, `<n>s` for seconds, and `<n>ms`
@@ -66,7 +81,7 @@ async fn my_fn() {
 }
 ```
 
-## On error
+### On error
 
 On error can either be the string literal "panic", as seen in examples above,
 or something that can be invoked with a `&'static str` to produce an error.
@@ -114,17 +129,11 @@ async fn anyhow_err_fn() -> anyhow::Result<()> {
 
 ```
 
-## Why
-
-Many function invocations have an upper limit to how long they should reasonably run.
-Asynchronous functions under to tokio runtime can be trivially wrapped with a timeout. However, wrapping and unwrapping
-function body blocks is unergonomic and not trivial to do and undo. That's the reason behind this proc-macro.
-
 ## Goals
 
-There are two goals that this crate aims to achieve
+There are two goals that this crate aims to achieve additional to what the name states.
 
-#### Compilation time
+#### Low Compilation time
 
 Since the functionality is so trivial, and the scope is theoretically any asynchronous function in a project
 (any asynchronous functions that are not meant to run infinitely long, blocking progress forever), the primary
@@ -167,10 +176,10 @@ that has the attribute added to it.
 
 ### Some cursory benchmarking results
 
-Using syn to parse the token stream, and quote to generate the output: `~13.5μs`.
-Parsing manually and using quote to generate the output: `~3.5μs`.
-Parsing manually and generating output manually: `~2.35μs`.
-Removing syn and quote completely (still using proc-macro2): `~1.69μs`.
+Using syn to parse the token stream, and quote to generate the output: `~13.5μs`.  
+Parsing manually and using quote to generate the output: `~3.5μs`.  
+Parsing manually and generating output manually: `~2.35μs`.  
+Removing syn and quote completely (still using proc-macro2): `~1.69μs`.  
 Removing proc-macro2: `???` (can't benchmark without using it because the library cannot be exported).
 
 Compilation-overhead caused by the macro is reduced by `9/10` if the `syn` + `quote` + `proc-macro2` stack is not used.
